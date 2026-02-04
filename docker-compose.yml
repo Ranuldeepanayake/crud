@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: studentsdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - '5432:5432'
+
+  vault:
+    image: vault:1.14.0
+    command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
+    ports:
+      - '8200:8200'
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+
+  vault-init:
+    image: curlimages/curl:8.2.1
+    depends_on:
+      - vault
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      set -e
+      sleep 3
+      echo 'Writing DB secret to Vault...'
+      curl --fail -s -X POST \
+        -H "X-Vault-Token: root" \
+        -H "Content-Type: application/json" \
+        --data '{"data": {"DB_HOST":"db","DB_USER":"postgres","DB_PASSWORD":"postgres","DB_NAME":"studentsdb","DB_PORT":"5432"}}' \
+        http://vault:8200/v1/secret/data/students || true
+      echo 'Vault init complete.'
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: studentsdb
+      DB_PORT: 5432
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+      VAULT_SECRET_PATH: secret/data/students
+    depends_on:
+      - db
+      - vault
+
+volumes:
+  db_data:
+

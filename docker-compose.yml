@@ -1,59 +1,70 @@
 version: '3.8'
 services:
-  db:
+  database:
     image: postgres:15
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: studentsdb
+      POSTGRES_PASSWORD: postgres@123!
+      POSTGRES_DB: student
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - crud-db-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
 
   vault:
-    image: vault:1.14.0
-    command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
+    image: hashicorp/vault:1.15
+    restart: unless-stopped
     ports:
       - '8200:8200'
+    volumes:
+      - ./resources/vault-data:/vault/data
+      - ./resources/vault/vault.hcl:/vault/config/vault.hcl:ro
+      - ./resources/vault/vault.crt:/vault/tls/vault.crt:ro
+      - ./resources/vault/vault.key:/vault/tls/vault.key:ro
     environment:
-      VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_ADDR: https://127.0.0.1:8200
+      VAULT_SKIP_VERIFY: "true"
+      SKIP_SETCAP: "true"
+      SKIP_CHOWN: "true"
+    command: vault server --config=/vault/config/vault.hcl
+    cap_add:  #Memory locking. Disable it.
+      - IPC_LOCK
+      - SETFCAP
+    user: "100:100"  #Ensures vault user can write to the volume
 
-  vault-init:
-    image: curlimages/curl:8.2.1
-    depends_on:
-      - vault
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      set -e
-      sleep 3
-      echo 'Writing DB secret to Vault...'
-      curl --fail -s -X POST \
-        -H "X-Vault-Token: root" \
-        -H "Content-Type: application/json" \
-        --data '{"data": {"DB_HOST":"db","DB_USER":"postgres","DB_PASSWORD":"postgres","DB_NAME":"studentsdb","DB_PORT":"5432"}}' \
-        http://vault:8200/v1/secret/data/students || true
-      echo 'Vault init complete.'
   app:
     build: .
     restart: unless-stopped
     ports:
       - '3000:3000'
     environment:
-      DB_HOST: db
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: studentsdb
-      DB_PORT: 5432
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: root
-      VAULT_SECRET_PATH: secret/data/students
+      VAULT_ADDR: https://vault:8200
+      VAULT_TOKEN:
+      VAULT_SECRET_PATH: secret/data/crud/database
     depends_on:
-      - db
+      - database
       - vault
 
+  # vault-init:
+  #   image: curlimages/curl:8.2.1
+  #   depends_on:
+  #     - vault
+  #   entrypoint: ["/bin/sh", "-c"]
+  #   command: |
+  #     set -e
+  #     sleep 3
+  #     echo 'Writing DB secret to Vault...'
+  #     curl --fail -X POST \
+  #       -H "X-Vault-Token: root" \
+  #       -H "Content-Type: application/json" \
+  #       --data '{"data": {"DB_HOST":"database","DB_USER":"postgres","DB_PASSWORD":"postgres@123!","DB_NAME":"student","DB_PORT":"5432"}}' \
+  #       http://vault:8200/v1/secret/data/crud/database
+  #     echo 'Vault init complete.'
+
+
 volumes:
-  db_data:
+  crud-db-data:
+  vault-data:
 

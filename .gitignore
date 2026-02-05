@@ -137,3 +137,10 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+#Certificate file.
+**.crt
+**.key
+
+#Vault data folder
+vault-data/

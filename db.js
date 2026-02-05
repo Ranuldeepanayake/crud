@@ -29,13 +29,13 @@ async function initPool() {
   if (pool) return pool;
 
 //Fallback to environment variables if vault cannot be used.  
-//   let config = {
-//     host: process.env.DB_HOST || 'localhost',
-//     user: process.env.DB_USER || 'postgres',
-//     password: process.env.DB_PASSWORD || 'postgres',
-//     database: process.env.DB_NAME || 'studentsdb',
-//     port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-//   };
+  let config = {
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    database: process.env.DB_NAME || 'studentsdb',
+    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
+  };
 
   if (process.env.VAULT_ADDR && process.env.VAULT_TOKEN) {
     const secrets = await fetchSecretsFromVault();

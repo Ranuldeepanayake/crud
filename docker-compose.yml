@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   database:
     image: postgres:15
@@ -19,7 +18,7 @@ services:
     ports:
       - '8200:8200'
     volumes:
-      - ./resources/vault-data:/vault/data
+      - ~/scratch-disk/vault-data:/vault/data
       - ./resources/vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./resources/vault/vault.crt:/vault/tls/vault.crt:ro
       - ./resources/vault/vault.key:/vault/tls/vault.key:ro
@@ -41,7 +40,7 @@ services:
       - '3000:3000'
     environment:
       VAULT_ADDR: https://vault:8200
-      VAULT_TOKEN:
+      VAULT_TOKEN: hvs.CAESID1X4nu8FnLO6UzRPtLuAScDNbUrKmRiQfyKLQWuAsgGGh4KHGh2cy51QXNza3NkN3RvM01idWFaNnBFZ1F0M28
       VAULT_SECRET_PATH: secret/data/crud/database
     depends_on:
       - database

@@ -2,8 +2,6 @@
 
 name: Build feature/develop branch
 
-# if: github.ref == 'refs/heads/develop'
-
 #Trigger the workflow on push, on pull request and manually.
 on:
   # push:
@@ -34,13 +32,13 @@ env:
   AWS_REGION: us-east-1
   AWS_USERNAME: AWS
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
-  ECR_REPOSITORY_GROUP: qba
-  ECR_REPOSITORY_NAME: qba-back-end
+  ECR_REPOSITORY_GROUP: crud
+  ECR_REPOSITORY_NAME: crud
   COMMIT_USERNAME: github-actions
   COMMIT_EMAIL: github-actions@github.com
-  DEV_ENVIRONMENT_VALUES_FILE: environments/qba/dev/values.yaml
-  DEV_ENVIRONMENT_ENV_FILE: environments/qba/dev/qba-back-end-env.yaml
-  DEPLOYMENT_REPOSITORY: Ranuldeepanayake/qba-helm
+  DEV_ENVIRONMENT_VALUES_FILE: environments/crud/dev/values.yaml
+  DEV_ENVIRONMENT_ENV_FILE: environments/crud/dev/env.yaml
+  DEPLOYMENT_REPOSITORY: Ranuldeepanayake/helm
 
 #Permissions.
 permissions:
@@ -52,10 +50,12 @@ jobs:
     #Runner label.
     runs-on: self-hosted
 
+
     #Checkout branch which is being built.
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
 
       #Check if the version number is in the correct format.
     - name: Validate version number
@@ -82,6 +82,7 @@ jobs:
         else
           echo "✅ Version number ${VERSION_NUMBER} is consistent with the format"
         fi
+
 
       #Prepare the image tag with the necessary appends for branches except pull requests.
     - name: Prepare image tag
@@ -120,6 +121,7 @@ jobs:
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "Image tag: ${IMAGE_TAG}"
 
+
       #Prepare the image tag with the necessary appends for pull requests only.
     - name: Prepare image tag
       if: github.event_name == 'pull_request'
@@ -148,6 +150,7 @@ jobs:
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "Image tag: ${IMAGE_TAG}"
 
+
       #Configure the artifact repository credentials.
     - name: Configure artifact repository credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -156,21 +159,19 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-      #Only needed to log in to private ECR repositories.
-      # - name: Login to Amazon ECR
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v2
 
       #Log in to the artifact repository.
     - name: Login to the artifact repository
       run: |
         aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username ${AWS_USERNAME} --password-stdin ${ECR_REPOSITORY_URL}
 
+
       #Build the image.
     - name: Build image
       run: |
         echo "Image name: ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}"
         docker build -t ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} .
+
 
       #Push the built image to an artifact repository.
     - name: Push image to artifact repository
@@ -191,6 +192,7 @@ jobs:
           clean: true
           fetch-depth: 0   #Required to push back
 
+
       #Copy environment variables to the deployment repository.
     - name: Copy the .env file
       #if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
@@ -206,6 +208,7 @@ jobs:
           exit 1
         fi
 
+
     #Change the image tag. Only if the deploy option is selected.
     - name: Change the image tag
       if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
@@ -213,17 +216,16 @@ jobs:
       with:
         cmd: |
           cd deployment-repo
-          #yq -i '.image.tag = "${{ inputs.image_tag }}"' environments/prod/values.yaml
-          #yq e -i '.containers.name.tag = strenv(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
-          yq -i '(.containers[] | select(.name == "back-end") | .tag) = env(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
+          yq -i '(.containers[] | select(.name == "crud") | .tag) = env(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
 
           #Verify the change.
-          TAG_READ_BACK=$(yq '.containers[] | select(.name == "back-end") | .tag' "${DEV_ENVIRONMENT_VALUES_FILE}")
+          TAG_READ_BACK=$(yq '.containers[] | select(.name == "crud") | .tag' "${DEV_ENVIRONMENT_VALUES_FILE}")
           echo "Tag read back: $TAG_READ_BACK"
+
 
     #Commit and push the change to the deployment repository.
     - name: Commit and push
-      #if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
+      if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
       run: |
         cd deployment-repo
 
@@ -235,23 +237,3 @@ jobs:
         git commit -m "Pipeline (helm): replaced the image tag with ${IMAGE_TAG} and the .env file" || echo "No changes to commit"
 
         git push
-
-  # deploy:
-  #   runs-on: ubuntu-latest
-  #   needs: build
-
-  #   steps:
-  #     - name: Deploy on EC2 via SSH
-  #       uses: appleboy/ssh-action@master
-  #       with:
-  #         host: ${{ secrets.EC2_HOST }}
-  #         username: ${{ secrets.EC2_USERNAME }}
-  #         key: ${{ secrets.EC2_KEY }}
-  #         protocol: tcp
-  #         port: 22
-  #         script: |
-  #           echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-  #           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/private:gh-action-app
-  #           docker stop node-app || true
-  #           docker rm node-app || true
-  #           docker run -d --name node-app -p 3000:3000 ${{ secrets.DOCKERHUB_USERNAME }}/private:gh-action-app

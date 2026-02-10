@@ -29,16 +29,16 @@ env:
   AWS_REGION: us-east-1
   AWS_USERNAME: AWS
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
-  ECR_REPOSITORY_GROUP: qba
-  ECR_REPOSITORY_NAME: qba-back-end
+  ECR_REPOSITORY_GROUP: crud
+  ECR_REPOSITORY_NAME: crud
   PARENT_BRANCH: develop
   TEMPORARY_BRANCH: merge-temp-release-to-develop
   COMMIT_USERNAME: github-actions
   COMMIT_EMAIL: github-actions@github.com
-  QA_ENVIRONMENT_VALUES_FILE: environments/qba/qa/values.yaml
-  QA_ENVIRONMENT_ENV_FILE: environments/qba/qa/qba-back-end-env.yaml
-  DEPLOYMENT_REPOSITORY: Ranuldeepanayake/qba-helm
-  CODE_REPOSITORY: Ranuldeepanayake/qba-back-end
+  QA_ENVIRONMENT_VALUES_FILE: environments/crud/qa/values.yaml
+  QA_ENVIRONMENT_ENV_FILE: environments/crud/qa/env.yaml
+  DEPLOYMENT_REPOSITORY: Ranuldeepanayake/helm
+  CODE_REPOSITORY: Ranuldeepanayake/crud
 
 #Permissions.
 permissions:
@@ -60,6 +60,7 @@ jobs:
         clean: true
         #Fetches full history for tags to work.
         fetch-depth: 0
+
 
       #Check if the version number is in the correct format.
     - name: Validate version number
@@ -83,6 +84,7 @@ jobs:
         else
           echo "✅ Version number ${VERSION_NUMBER} is consistent with the format"
         fi
+
 
     #Read and increment the rc number.
     - name: Increment the rc number
@@ -111,6 +113,7 @@ jobs:
           echo "✅ Version number ${INCREMENTED_VERSION} is consistent with the format"
         fi
 
+
      #Prepare the image tag with the necessary appends.
     - name: Prepare image tag
       run: | 
@@ -134,6 +137,7 @@ jobs:
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "Image tag: ${IMAGE_TAG}"
 
+
       #Configure the artifact repository credentials.
     - name: Configure artifact repository credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -142,10 +146,12 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+
       #Log in to the artifact repository.
     - name: Login to the artifact repository
       run: |
         aws ecr-public get-login-password --region ${AWS_REGION} | docker login --username ${AWS_USERNAME} --password-stdin ${ECR_REPOSITORY_URL}
+
 
       #Build the image.
     - name: Build image
@@ -153,10 +159,12 @@ jobs:
         echo "Image name: ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}"
         docker build -t ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} .
 
+
       #Push the built image to an artifact repository.
     - name: Push image to artifact repository
       run: |
         docker push ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}
+
 
     #Update the version file with the new value.
     - name: Update version file
@@ -173,6 +181,7 @@ jobs:
         else
           echo "✅ Incremented version written correctly to the version file"
         fi
+
 
     #Commit and push the changes to the release branch.
     - name: Commit and push to release
@@ -192,11 +201,13 @@ jobs:
         #Push the tag.
         git push origin ${INCREMENTED_VERSION}
 
+
     #Checkout the parent branch.
     - name: Checkout develop branch
       run: |
         git checkout ${PARENT_BRANCH}
         echo "Selected branch: $(git branch)"
+
 
     # #Merge the release branch into the develop branch except for the version file, commit and push.
     - name: Merge release into develop
@@ -229,11 +240,13 @@ jobs:
         clean: true
         fetch-depth: 0   #Required to push back
 
+
       #Checkout the release branch again to get the .env file.
     - name: Checkout release branch
       run: |
         git checkout ${BRANCH_NAME}
         echo "Selected branch: $(git branch)"
+
 
       #Copy environment variables to the deployment repository.
     - name: Copy the .env file
@@ -256,11 +269,12 @@ jobs:
       with:
         cmd: |
           cd deployment-repo
-          yq -i '(.containers[] | select(.name == "back-end") | .tag) = env(IMAGE_TAG)' "${QA_ENVIRONMENT_VALUES_FILE}"
+          yq -i '(.containers[] | select(.name == "crud") | .tag) = env(IMAGE_TAG)' "${QA_ENVIRONMENT_VALUES_FILE}"
 
           #Verify the change.
-          TAG_READ_BACK=$(yq '.containers[] | select(.name == "back-end") | .tag' "${QA_ENVIRONMENT_VALUES_FILE}")
+          TAG_READ_BACK=$(yq '.containers[] | select(.name == "crud") | .tag' "${QA_ENVIRONMENT_VALUES_FILE}")
           echo "Tag read back: $TAG_READ_BACK"
+
 
     #Commit and push the change to the deployment repository.
     - name: Commit and push

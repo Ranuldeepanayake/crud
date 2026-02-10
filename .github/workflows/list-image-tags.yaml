@@ -19,8 +19,8 @@ env:
   INPUT_TAG_TYPE: ${{ github.event.inputs.INPUT_TAG_TYPE }}
   AWS_REGION: us-east-1
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
-  ECR_REPOSITORY_GROUP: qba
-  ECR_REPOSITORY_NAME: qba-back-end
+  ECR_REPOSITORY_GROUP: crud
+  ECR_REPOSITORY_NAME: crud
 
 #Permissions.
 permissions:

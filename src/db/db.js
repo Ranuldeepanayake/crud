@@ -9,7 +9,7 @@ async function fetchSecretsFromVault() {
   const port = process.env.VAULT_PORT;
   const addr = host && port ? `https://${host}:${port}` : process.env.VAULT_ADDR;
   const token = arguments[0] || process.env.VAULT_TOKEN;
-  const path = process.env.VAULT_SECRET_PATH || 'secret/data/students';
+  const path = process.env.VAULT_SECRET_PATH || 'secret/data/crud/database';
 
   if (!addr || !token) {
     console.log('Vault not configured (VAULT_ADDR/VAULT_TOKEN missing)');

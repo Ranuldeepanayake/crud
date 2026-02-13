@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const studentsRouter = require('./routes/students');
-const { initPool } = require('./db');
+const { initPool } = require('./db/db');
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 

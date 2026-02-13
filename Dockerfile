@@ -19,8 +19,9 @@ RUN if [ "$RUN_TESTS" = "true" ]; then \
       npm ci --omit=dev; \
     fi
 
-#Copy app source.
+#Copy required files.
 COPY src ./src
+COPY test ./test
 COPY README.md ./
 
 #Run tests only if enabled.

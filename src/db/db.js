@@ -7,7 +7,7 @@ const maskConfig = (cfg) => ({ ...cfg, password: cfg.password ? '****' : cfg.pas
 async function fetchSecretsFromVault() {
   const host = process.env.VAULT_HOST;
   const port = process.env.VAULT_PORT;
-  const addr = host && port ? `https://${host}:${port}` : process.env.VAULT_ADDR;
+  const addr = host && port ? `${host}:${port}` : process.env.VAULT_ADDR;
   const token = arguments[0] || process.env.VAULT_TOKEN;
   const path = process.env.VAULT_SECRET_PATH || 'secret/data/crud/database';
 
@@ -33,8 +33,8 @@ async function fetchSecretsFromVault() {
       await new Promise((r) => setTimeout(r, waitMs));
     }
   }
-  console.error('Unable to retrieve secrets from Vault after attempts');
-  throw new Error('Unable to retrieve secrets from Vault');
+  console.error('Unable to retrieve secrets from Vault after several attempts!');
+  throw new Error('Unable to retrieve secrets from Vault!');
 }
 
 async function initPool() {
@@ -53,6 +53,7 @@ async function initPool() {
         if (secretValue) {
           vaultToken = secretValue;
           console.log(`Loaded Vault token from Kubernetes secret: ${secretPath}`);
+          console.log(`Vault token: ${vaultToken}`);
         } else {
           console.warn(`Kubernetes secret file ${secretPath} is empty.`);
         }

@@ -2,13 +2,18 @@ FROM node:18-alpine
 
 WORKDIR /usr/src/app
 
-# copy package manifests first for cached installs
-COPY package.json package-lock.json* ./
-RUN npm install --production
+# Copy package manifests first for cached installs
+COPY package.json ./
+COPY package-lock.json ./
 
-# copy app
-COPY . .
+# Install dependencies
+RUN if [ -f package-lock.json ]; then npm ci --production; else npm install --production; fi
+
+# Copy app source only
+COPY src ./src
+# Optionally copy other needed files (README.md, etc.)
+COPY README.md ./
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "src/server.js"]

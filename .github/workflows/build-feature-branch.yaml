@@ -33,12 +33,13 @@ env:
   AWS_USERNAME: AWS
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
   ECR_REPOSITORY_GROUP: crud
-  ECR_REPOSITORY_NAME: crud
+  ECR_REPOSITORY_NAME: app
   COMMIT_USERNAME: github-actions
   COMMIT_EMAIL: github-actions@github.com
   DEV_ENVIRONMENT_VALUES_FILE: environments/crud/dev/values.yaml
   DEV_ENVIRONMENT_ENV_FILE: environments/crud/dev/env.yaml
   DEPLOYMENT_REPOSITORY: Ranuldeepanayake/helm
+  APP_NAME: app
 
 #Permissions.
 permissions:
@@ -151,6 +152,13 @@ jobs:
         echo "Image tag: ${IMAGE_TAG}"
 
 
+      #Scan with sonarqube.
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v6
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+
       #Configure the artifact repository credentials.
     - name: Configure artifact repository credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -178,11 +186,10 @@ jobs:
       run: |
         docker push ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}
 
-    #Deployment. The .env file must be copied to the deployment repository regardless whether the file is deployed or not.
 
-    #Checkout the gitops repository.
+      #Checkout the gitops repository.
     - name: Checkout code
-      #if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
+      if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
       uses: actions/checkout@v4
       with:
           repository: ${{ env.DEPLOYMENT_REPOSITORY }}
@@ -195,7 +202,7 @@ jobs:
 
       #Copy environment variables to the deployment repository.
     - name: Copy the .env file
-      #if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
+      if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
       run: |
         cp .env/.env-dev deployment-repo/${DEV_ENVIRONMENT_ENV_FILE}
         cd deployment-repo
@@ -209,21 +216,21 @@ jobs:
         fi
 
 
-    #Change the image tag. Only if the deploy option is selected.
+      #Change the image tag. Only if the deploy option is selected.
     - name: Change the image tag
       if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
       uses: mikefarah/yq@v4.44.1
       with:
         cmd: |
           cd deployment-repo
-          yq -i '(.containers[] | select(.name == "crud") | .tag) = env(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
+          yq -i '(.containers[] | select(.name == APP_NAME) | .tag) = env(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
 
           #Verify the change.
-          TAG_READ_BACK=$(yq '.containers[] | select(.name == "crud") | .tag' "${DEV_ENVIRONMENT_VALUES_FILE}")
+          TAG_READ_BACK=$(yq '.containers[] | select(.name == APP_NAME) | .tag' "${DEV_ENVIRONMENT_VALUES_FILE}")
           echo "Tag read back: $TAG_READ_BACK"
 
 
-    #Commit and push the change to the deployment repository.
+      #Commit and push the change to the deployment repository.
     - name: Commit and push
       if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
       run: |

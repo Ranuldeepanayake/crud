@@ -5,9 +5,12 @@ let pool = null;
 const maskConfig = (cfg) => ({ ...cfg, password: cfg.password ? '****' : cfg.password });
 
 async function fetchSecretsFromVault() {
-  const addr = process.env.VAULT_ADDR;
-  const token = process.env.VAULT_TOKEN;
+  const host = process.env.VAULT_HOST;
+  const port = process.env.VAULT_PORT;
+  const addr = host && port ? `https://${host}:${port}` : process.env.VAULT_ADDR;
+  const token = arguments[0] || process.env.VAULT_TOKEN;
   const path = process.env.VAULT_SECRET_PATH || 'secret/data/students';
+
   if (!addr || !token) {
     console.log('Vault not configured (VAULT_ADDR/VAULT_TOKEN missing)');
     return null;
@@ -37,29 +40,54 @@ async function fetchSecretsFromVault() {
 async function initPool() {
   if (pool) return pool;
 
-  let config = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'studentsdb',
-    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-  };
+  // Check for Kubernetes mounted secret token
+  const k8sTokenName = process.env.SECRETS_TOKEN;
+  let vaultToken = null;
 
-  console.log('Initial DB config (masked):', maskConfig(config));
-
-  if (process.env.VAULT_ADDR && process.env.VAULT_TOKEN) {
+  if (k8sTokenName) {
+    const secretPath = `/etc/secrets/${k8sTokenName}`;
+    const fs = require('fs');
     try {
-      const secrets = await fetchSecretsFromVault();
-      if (secrets) {
-        config.host = secrets.DB_HOST || config.host;
-        config.user = secrets.DB_USER || config.user;
-        config.password = secrets.DB_PASSWORD || config.password;
-        config.database = secrets.DB_NAME || config.database;
-        config.port = secrets.DB_PORT ? Number(secrets.DB_PORT) : config.port;
+      if (fs.existsSync(secretPath)) {
+        const secretValue = fs.readFileSync(secretPath, 'utf8').trim();
+        if (secretValue) {
+          vaultToken = secretValue;
+          console.log(`Loaded Vault token from Kubernetes secret: ${secretPath}`);
+        } else {
+          console.warn(`Kubernetes secret file ${secretPath} is empty.`);
+        }
+      } else {
+        console.warn(`Kubernetes secret file ${secretPath} does not exist.`);
       }
     } catch (err) {
-      console.error('Error fetching secrets from Vault, falling back to environment vars:', err && err.message ? err.message : err);
+      console.error(`Error reading Kubernetes secret file ${secretPath}:`, err.message || err);
     }
+  }
+
+  // Try to load DB config from Vault using the k8s token
+  let config = {
+    host: '',
+    user: '',
+    password: '',
+    database: '',
+    port: 0,
+  };
+
+  try {
+    const secrets = await fetchSecretsFromVault(vaultToken);
+    if (secrets) {
+      config.host = secrets.DB_HOST || config.host;
+      config.user = secrets.DB_USER || config.user;
+      config.password = secrets.DB_PASSWORD || config.password;
+      config.database = secrets.DB_NAME || config.database;
+      config.port = secrets.DB_PORT ? Number(secrets.DB_PORT) : config.port;
+      console.log('Loaded secrets from Vault');
+    } else {
+      console.log('Could not load secrets from the vault. Vault empty!');
+    }
+
+  } catch (err) {
+    console.error('Error fetching secrets from Vault!', err && err.message ? err.message : err);
   }
 
   console.log('Final DB config (masked):', maskConfig(config));

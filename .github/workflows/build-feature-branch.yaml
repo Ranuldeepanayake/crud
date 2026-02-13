@@ -245,10 +245,10 @@ jobs:
       with:
         cmd: |
           cd deployment-repo
-          yq -i '(.containers[] | select(.name == ${APP_NAME}) | .tag) = env(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
+          yq -i '(.containers[] | select(.name == env(APP_NAME)) | .tag) = env(IMAGE_TAG)' "${DEV_ENVIRONMENT_VALUES_FILE}"
 
           #Verify the change.
-          TAG_READ_BACK=$(yq '.containers[] | select(.name == ${APP_NAME}) | .tag' "${DEV_ENVIRONMENT_VALUES_FILE}")
+          TAG_READ_BACK=$(yq '.containers[] | select(.name == env(APP_NAME)) | .tag' "${DEV_ENVIRONMENT_VALUES_FILE}")
           echo "Tag read back: $TAG_READ_BACK"
 
 

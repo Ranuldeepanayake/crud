@@ -34,6 +34,7 @@ env:
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
   ECR_REPOSITORY_GROUP: crud
   ECR_REPOSITORY_NAME: app
+  RUN_TESTS: true
   COMMIT_USERNAME: github-actions
   COMMIT_EMAIL: github-actions@github.com
   DEV_ENVIRONMENT_VALUES_FILE: environments/crud/dev/values.yaml
@@ -180,7 +181,8 @@ jobs:
     - name: Build image
       run: |
         echo "Image name: ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}"
-        docker build -t ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} .
+        #Run tests from within the dockerfile.
+        docker build --build-arg RUN_TESTS=${RUN_TESTS} -t ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} .
 
 
       #Push the built image to an artifact repository.

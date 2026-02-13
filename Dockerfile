@@ -1,19 +1,36 @@
 FROM node:18-alpine
 
+#Change the working directory.
 WORKDIR /usr/src/app
 
-#Copy package manifests first for cached installs
+#Build argument (default false).
+ARG RUN_TESTS=false
+
+#Copy package manifests first for cached installs.
 COPY package.json ./
 COPY package-lock.json* ./
 
-# Install dependencies
-RUN if [ -f package-lock.json ]; then npm ci --production; else npm install --production; fi
+#Install dependencies (include devDependencies if tests are enabled).
+RUN if [ "$RUN_TESTS" = "true" ]; then \
+      echo "Installing all dependencies (including dev)"; \
+      npm ci; \
+    else \
+      echo "Installing production dependencies only"; \
+      npm ci --omit=dev; \
+    fi
 
-# Copy app source only
+#Copy app source.
 COPY src ./src
-# Optionally copy other needed files (README.md, etc.)
 COPY README.md ./
 
+#Run tests only if enabled.
+RUN if [ "$RUN_TESTS" = "true" ]; then \
+      echo "Running tests..."; \
+      npm test; \
+    fi
+
+#Expose listening port.
 EXPOSE 3000
 
+#Run process.
 CMD ["node", "src/server.js"]

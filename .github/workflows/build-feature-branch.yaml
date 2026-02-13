@@ -24,17 +24,34 @@ on:
         options:
           - build
           - build-and-deploy
+      SONAR_SCAN_ENABLE:
+        description: 'Scan with sonarqube?'
+        required: true
+        default: true
+        type: choice
+        options:
+          - true
+          - false
+      RUN_TESTS:
+        description: 'Run unit & coverage tests?'
+        required: true
+        default: true
+        type: choice
+        options:
+          - true
+          - false
 
 #Global environment variables.
 env:
   INPUT_ACTION: ${{ github.event.inputs.INPUT_ACTION || 'build-and-deploy' }} #Default needed since the workflow will not use the input default when run on-push.
+  SONAR_SCAN_ENABLE: ${{ github.event.inputs.SONAR_SCAN_ENABLE || 'true' }}
+  RUN_TESTS: ${{ github.event.inputs.RUN_TESTS || 'true' }}
   VERSION_FILE: package.json
   AWS_REGION: us-east-1
   AWS_USERNAME: AWS
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
   ECR_REPOSITORY_GROUP: crud
   ECR_REPOSITORY_NAME: app
-  RUN_TESTS: true
   COMMIT_USERNAME: github-actions
   COMMIT_EMAIL: github-actions@github.com
   DEV_ENVIRONMENT_VALUES_FILE: environments/crud/dev/values.yaml
@@ -157,6 +174,7 @@ jobs:
 
       #Scan with sonarqube.
     - name: SonarQube Scan
+      if: ${{ env.SONAR_SCAN_ENABLE == 'true' }}
       uses: SonarSource/sonarqube-scan-action@v6
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

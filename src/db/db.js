@@ -53,7 +53,7 @@ async function initPool() {
         if (secretValue) {
           vaultToken = secretValue;
           console.log(`Loaded Vault token from Kubernetes secret: ${secretPath}`);
-          console.log(`Vault token: ${vaultToken}`);
+          //console.log(`Vault token: ${vaultToken}`);
         } else {
           console.warn(`Kubernetes secret file ${secretPath} is empty.`);
         }

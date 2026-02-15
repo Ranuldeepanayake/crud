@@ -87,7 +87,7 @@ jobs:
 
           if [[ ! ${VERSION_NUMBER} =~ $PATTERN ]]; then
             echo "❌ Version number ${VERSION_NUMBER} is inconsistent with the format. Exiting!"
-            echo "Allowed formats: x.x.0"
+            echo "Allowed formats: x.x.x"
             exit 1
           else
             echo "✅ Version number ${VERSION_NUMBER} is consistent with the format"

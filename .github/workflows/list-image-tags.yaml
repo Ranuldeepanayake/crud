@@ -20,7 +20,7 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
   ECR_REPOSITORY_GROUP: crud
-  ECR_REPOSITORY_NAME: crud
+  ECR_REPOSITORY_NAME: app
 
 #Permissions.
 permissions:

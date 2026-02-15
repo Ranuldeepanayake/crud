@@ -20,9 +20,10 @@ on:
       INPUT_BUMP_SEGMENT:
         description: 'Select version segment to bump'
         required: true
-        default: minor
+        default: patch
         type: choice
         options:
+          - patch
           - minor
           - major
 
@@ -36,13 +37,14 @@ env:
   AWS_REGION: us-east-1
   AWS_USERNAME: AWS
   ECR_REPOSITORY_URL: public.ecr.aws/l4a5c1v5
-  ECR_REPOSITORY_GROUP: qba
-  ECR_REPOSITORY_NAME: qba-back-end
+  ECR_REPOSITORY_GROUP: crud
+  ECR_REPOSITORY_NAME: app
   COMMIT_USERNAME: github-actions
   COMMIT_EMAIL: github-actions@github.com
   QA_ENVIRONMENT_VALUES_FILE: environments/crud/qa/values.yaml
   QA_ENVIRONMENT_ENV_FILE: environments/crud/qa/env.yaml
   DEPLOYMENT_REPOSITORY: Ranuldeepanayake/helm
+  APP_NAME: app
 
 #Permissions.
 permissions:
@@ -81,7 +83,7 @@ jobs:
           echo "Version number: ${VERSION_NUMBER}"
           
           #Allowed patterns.
-          PATTERN="([0-9]+\.[0-9]+\.[0]){1,1}"
+          PATTERN="([0-9]+\.[0-9]+\.[0-9]+){1,1}"
 
           if [[ ! ${VERSION_NUMBER} =~ $PATTERN ]]; then
             echo "❌ Version number ${VERSION_NUMBER} is inconsistent with the format. Exiting!"
@@ -115,11 +117,6 @@ jobs:
         #Append the release candidate tag to the version file of the new branch.
       - name: Append release candidate tag
         run: |
-          #BASE_VERSION=$(jq -r '.version' package.json | sed 's/-rc\..*//')
-          #RC_NUMBER=${{ github.run_number }}
-          #RC_VERSION="${BASE_VERSION}-rc.${RC_NUMBER}"
-          #jq ".version = \"${RC_VERSION}\"" package.json > tmp.json && mv tmp.json package.json
-
           RC_VERSION="${VERSION_NUMBER}-rc.${RC_TAG}"
           echo "RC_VERSION=$RC_VERSION" >> $GITHUB_ENV
           echo "Prepared release candidate version: ${RC_VERSION}"
@@ -147,13 +144,6 @@ jobs:
           git config user.email ${COMMIT_EMAIL}
 
           git add ${VERSION_FILE}
-
-          #Handle the nothing to commit issue.
-          # if git diff --cached --quiet; then
-          # echo "No changes to commit"
-          # else
-          #   git commit -m "Pipeline: set version to ${RC_VERSION}"
-          # fi
 
           git commit --allow-empty -m "Pipeline (release branch creation): created a release branch ${NEW_BRANCH_NAME} with version ${RC_VERSION}"
 
@@ -196,6 +186,9 @@ jobs:
           elif [[ ${INPUT_BUMP_SEGMENT} == 'minor' ]]; then
             INCREMENTED_VERSION="$VERSION_MAJOR.$((VERSION_MINOR + 1)).$VERSION_PATCH"
             echo "INCREMENTED_VERSION=$INCREMENTED_VERSION" >> $GITHUB_ENV
+          elif [[ ${INPUT_BUMP_SEGMENT} == 'patch' ]]; then
+            INCREMENTED_VERSION="$VERSION_MAJOR.$VERSION_MINOR.$((VERSION_PATCH + 1))"
+            echo "INCREMENTED_VERSION=$INCREMENTED_VERSION" >> $GITHUB_ENV
           fi
 
           echo "Incremented version: ${INCREMENTED_VERSION}"
@@ -204,7 +197,6 @@ jobs:
       #Update the version file with the new value.
       - name: Update version file
         run: |        
-          #jq ".version = \"${{ steps.bump.outputs.new }}\"" package.json > tmp.json
           jq ".version = \"${INCREMENTED_VERSION}\"" ${VERSION_FILE} > temp.json && mv temp.json ${VERSION_FILE}
 
           INCREMENTED_VERSION_READ_BACK=$(jq -r '.version' ${VERSION_FILE} | tr -d '\n')
@@ -284,6 +276,7 @@ jobs:
 
       #Checkout the gitops repository.
       - name: Checkout code
+        if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
         uses: actions/checkout@v4
         with:
             repository: ${{ env.DEPLOYMENT_REPOSITORY }}
@@ -296,6 +289,7 @@ jobs:
 
         #Copy environment variables to the deployment repository.
       - name: Copy the .env file
+        if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
         run: |
           cp .env/.env-qa deployment-repo/${QA_ENVIRONMENT_ENV_FILE}
           cd deployment-repo
@@ -308,6 +302,7 @@ jobs:
             exit 1
           fi
 
+
       #Change the image tag. Only if the deploy option is selected.
       - name: Change the image tag
         if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
@@ -315,16 +310,16 @@ jobs:
         with:
           cmd: |
             cd deployment-repo
-            yq -i '(.containers[] | select(.name == "crud") | .tag) = env(IMAGE_TAG)' "${QA_ENVIRONMENT_VALUES_FILE}"
+            yq -i '(.containers[] | select(.name == env(APP_NAME)) | .tag) = env(IMAGE_TAG)' "${QA_ENVIRONMENT_VALUES_FILE}"
 
             #Verify the change.
-            TAG_READ_BACK=$(yq '.containers[] | select(.name == "crud") | .tag' "${QA_ENVIRONMENT_VALUES_FILE}")
+            TAG_READ_BACK=$(yq '.containers[] | select(.name == env(APP_NAME)) | .tag' "${QA_ENVIRONMENT_VALUES_FILE}")
             echo "Tag read back: $TAG_READ_BACK"
 
 
       #Commit and push the change to the deployment repository.
       - name: Commit and push
-        #if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
+        if: ${{ env.INPUT_ACTION == 'build-and-deploy' }}
         run: |
           cd deployment-repo
 

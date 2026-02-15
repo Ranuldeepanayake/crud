@@ -7,7 +7,7 @@ on:
       INPUT_TAG_TYPE:
         description: 'Select tag type'
         required: true
-        default: develop
+        default: DEVELOP
         type: choice
         options:
           - DEVELOP

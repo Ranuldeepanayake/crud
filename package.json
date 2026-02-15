@@ -1,6 +1,6 @@
 {
   "name": "student-crud",
-  "version": "1.0.0-rc.0",
+  "version": "1.0.0-rc.1",
   "description": "Simple Node.js + Express CRUD for student data with Postgres",
   "main": "server.js",
   "scripts": {

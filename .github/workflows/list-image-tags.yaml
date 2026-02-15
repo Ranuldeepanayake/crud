@@ -40,30 +40,32 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      #List image tags with the AWS CLI.
-      - name: List image tags
-        run: |
-          # aws ecr-public describe-images \
-          #   --repository-name "${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}" \
-          #   --query "imageDetails[?imageTags!=null].imageTags[] | [?contains(@, '${INPUT_TAG_TYPE}')] | sort(@) | reverse(@)" \
-          #   --output table
+      # #List image tags with the AWS CLI.
+      # - name: List image tags
+      #   run: |
+      #     # aws ecr-public describe-images \
+      #     #   --repository-name "${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}" \
+      #     #   --query "imageDetails[?imageTags!=null].imageTags[] | [?contains(@, '${INPUT_TAG_TYPE}')] | sort(@) | reverse(@)" \
+      #     #   --output table
 
-          aws ecr-public describe-images --repository-name "${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}" \
-          --query "imageDetails[?imageTags!=null].imageTags[]" --output text | \
-          grep "$INPUT_TAG_TYPE" | \
+      #     ############
+      #     aws ecr-public describe-images --repository-name "${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}" \
+      #     --query "imageDetails[?imageTags!=null].imageTags[]" --output text | \
+      #     grep "$INPUT_TAG_TYPE" | \
 
-          # Extract version and timestamp
-          awk -F'-' '{
-              version=$1;
-              timestamp=$5;
-              printf "%s %s %s\n", version, timestamp, $0
-          }' | \
+      #     # Extract version and timestamp
+      #     awk -F'-' '{
+      #         version=$1;
+      #         timestamp=$5;
+      #         printf "%s %s %s\n", version, timestamp, $0
+      #     }' | \
 
-          # Sort: version descending, then timestamp descending
-          sort -r -k1,1V -k2,2r | \
+      #     # Sort: version descending, then timestamp descending
+      #     sort -r -k1,1V -k2,2r | \
 
-          # Extract full tag
-          awk '{print $3}'
+      #     # Extract full tag
+      #     awk '{print $3}'
+      #     ##############
 
 #Show all.
 #--query 'imageDetails[].imageTags[]'
@@ -78,3 +80,43 @@ jobs:
 #--query 'imageDetails[].{Tags:imageTags,PushedAt:imagePushedAt}'
 
 #--query "imageDetails[?imageTags!=null].imageTags[] | [?contains(@, '${INPUT_TAG_TYPE}')] | sort(@) | reverse(@)" \
+
+      - name: Get filtered and sorted ECR tags
+        id: filter_tags
+        run: |
+          TAG_TYPE=${INPUT_TAG_TYPE}   # DEVELOP | RELEASE | FEATURE
+
+          aws ecr-public describe-images \
+          --region us-east-1 \
+            --repository-name "${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}" \
+            --query "imageDetails[?imageTags!=null].imageTags[]" \
+            --output text | tr '\t' '\n' > all_tags.txt
+
+          if [ "$TAG_TYPE" = "RELEASE" ]; then
+            grep "RELEASE" all_tags.txt | \
+            awk -F'-' '
+            {
+              version=$1
+              rc=$2
+              datetime=$5
+              gsub("rc.","",rc)
+              printf "%s|%s|%s|%s\n", version, rc, datetime, $0
+            }' | \
+            sort -t'|' -k1,1Vr -k2,2nr -k3,3r | \
+            cut -d'|' -f4 > filtered_sorted.txt
+          else
+            grep "$TAG_TYPE" all_tags.txt | \
+            awk -F'-' '
+            {
+              version=$1
+              datetime=$4
+              printf "%s|%s|%s\n", version, datetime, $0
+            }' | \
+            sort -t'|' -k1,1Vr -k2,2r | \
+            cut -d'|' -f3 > filtered_sorted.txt
+          fi
+
+          echo "Sorted Tags:"
+          cat filtered_sorted.txt
+
+          echo "latest_tag=$(head -n 1 filtered_sorted.txt)" >> $GITHUB_OUTPUT

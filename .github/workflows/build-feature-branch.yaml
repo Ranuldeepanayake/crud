@@ -172,14 +172,6 @@ jobs:
         echo "Image tag: ${IMAGE_TAG}"
 
 
-      #Scan with sonarqube.
-    - name: SonarQube Scan
-      if: ${{ env.SONAR_SCAN_ENABLE == 'true' }}
-      uses: SonarSource/sonarqube-scan-action@v6
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-
       #Configure the artifact repository credentials.
     - name: Configure artifact repository credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -201,6 +193,21 @@ jobs:
         echo "Image name: ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}"
         #Run tests from within the dockerfile.
         docker build --build-arg RUN_TESTS=${RUN_TESTS} -t ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} .
+
+
+      #Run tests in Docker and mount the coverage test artifacts to a volume
+    - name: Run tests in temp container for sonarqube
+      if: ${{ env.SONAR_SCAN_ENABLE == 'true' &&  env.RUN_TESTS == 'true' }}  #Needed since if tests are disabled, test components will no be installed in the image.
+      run: docker run --rm -v ${{ github.workspace }}/coverage:/usr/src/app/coverage ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} npm test
+
+
+      #Scan with sonarqube. The mounted coverage test artifacts will be read by sonarqube. 
+    - name: SonarQube Scan
+      if: ${{ env.SONAR_SCAN_ENABLE == 'true' &&  env.RUN_TESTS == 'true' }}  #Needed since if tests are disabled, test components will no be installed in the image.
+      uses: SonarSource/sonarqube-scan-action@v6
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        projectBaseDir: .
 
 
       #Push the built image to an artifact repository.

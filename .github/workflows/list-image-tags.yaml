@@ -119,4 +119,5 @@ jobs:
           echo "Sorted Tags:"
           cat filtered_sorted.txt
 
-          echo "latest_tag=$(head -n 1 filtered_sorted.txt)" >> $GITHUB_OUTPUT
+          echo "Latest_tag: $(head -n 1 filtered_sorted.txt)"
+          echo "Latest_tag=$(head -n 1 filtered_sorted.txt)" >> $GITHUB_OUTPUT

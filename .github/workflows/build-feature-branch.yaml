@@ -199,7 +199,8 @@ jobs:
     - name: Run tests in temp container for sonarqube
       if: ${{ env.SONAR_SCAN_ENABLE == 'true' &&  env.RUN_TESTS == 'true' }}  #Needed since if tests are disabled, test components will no be installed in the image.
       run: | 
-        docker run --rm --user $(id -u):$(id -g) -v ${{ github.workspace }}/coverage:/usr/src/app/coverage \
+        echo "User: $(whoami) - $(id)"
+        docker run --rm --user ranul:ranul -v ${{ github.workspace }}/coverage:/usr/src/app/coverage \
         ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} npm test
       #Run the container as the actions-runner user. Else, it will not be able to be cleaned up due to permission issues.
 

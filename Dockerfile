@@ -23,7 +23,7 @@ FROM node:18-alpine
 #Check if the user ID exists. Else, fail the build.
 RUN getent passwd 1000
 
-USER 1000
+USER node
 
 #Change the working directory.
 WORKDIR /usr/src/app

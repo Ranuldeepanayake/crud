@@ -4,7 +4,13 @@ FROM node:18-alpine
 ARG TEST_USER_ID=1000
 ARG TEST_GROUP_ID=1000
 #RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser #Debian style
-RUN addgroup -g $TEST_GROUP_ID appuser && adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser
+RUN if ! getent group 1000 >/dev/null; then \
+      addgroup -g 1000 appgroup; \
+    fi && \
+    adduser -u 1000 -G 1000 -D appuser
+
+# RUN addgroup -g $TEST_GROUP_ID appuser && 
+# RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser
 USER appuser
 
 #Change the working directory.

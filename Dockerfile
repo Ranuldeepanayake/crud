@@ -1,25 +1,25 @@
 FROM node:18-alpine
 
 #Provisions for the test user.
-ARG TEST_USER_ID=1000
-ARG TEST_GROUP_ID=1000
-ARG TEST_USER_NAME=appuser
-ARG TEST_GROUP_NAME=appgroup
-#RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser #Debian style
-# RUN if ! getent group $TEST_GROUP_NAME >/dev/null; then \
-#       addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME; \
+# ARG TEST_USER_ID=1000
+# ARG TEST_GROUP_ID=1000
+# ARG TEST_USER_NAME=appuser
+# ARG TEST_GROUP_NAME=appgroup
+# #RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser #Debian style
+# # RUN if ! getent group $TEST_GROUP_NAME >/dev/null; then \
+# #       addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME; \
+# #     fi && \
+# #     adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
+# # RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
+# RUN GROUP_NAME=$(getent group $TEST_GROUP_ID | cut -d: -f1 || true) && \
+#     if [ -z "$GROUP_NAME" ]; then \
+#         addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME && GROUP_NAME=$TEST_GROUP_NAME; \
 #     fi && \
-#     adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
-# RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
-RUN GROUP_NAME=$(getent group $TEST_GROUP_ID | cut -d: -f1 || true) && \
-    if [ -z "$GROUP_NAME" ]; then \
-        addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME && GROUP_NAME=$TEST_GROUP_NAME; \
-    fi && \
-    adduser -D -u $TEST_USER_ID -G $GROUP_NAME $TEST_USER_NAME
+#     adduser -D -u $TEST_USER_ID -G $GROUP_NAME $TEST_USER_NAME
 
 # RUN addgroup -g $TEST_GROUP_ID appuser && 
 # RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser
-USER appuser
+USER 1000
 
 #Change the working directory.
 WORKDIR /usr/src/app

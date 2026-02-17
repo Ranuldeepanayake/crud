@@ -205,7 +205,7 @@ jobs:
         #Create the coverage directory to avoid being created by root.
         mkdir -p ./coverage
 
-        #Run the container as the actions-runner user. Else, it will not be able to be cleaned up due to permission issues.
+        #Run the container as the actions-runner user. Else, it will not be able to be cleaned up due to permission mismtaches of the artifcats in the container.
         docker run --rm --user 1000:1000 -v ./coverage:/usr/src/app/coverage \
         ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} npm test
       

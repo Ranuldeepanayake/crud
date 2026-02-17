@@ -200,7 +200,7 @@ jobs:
       if: ${{ env.SONAR_SCAN_ENABLE == 'true' &&  env.RUN_TESTS == 'true' }}  #Needed since if tests are disabled, test components will no be installed in the image.
       run: | 
         echo "User: $(whoami) - $(id)"
-        docker run --rm --user ranul:ranul -v ${{ github.workspace }}/coverage:/usr/src/app/coverage \
+        docker run --rm --user 1000:1000 -v ${{ github.workspace }}/coverage:/usr/src/app/coverage \
         ${ECR_REPOSITORY_URL}/${ECR_REPOSITORY_GROUP}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG} npm test
       #Run the container as the actions-runner user. Else, it will not be able to be cleaned up due to permission issues.
 

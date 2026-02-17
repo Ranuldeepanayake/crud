@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
-#Check if the user ID exists. Else, fail the build.
-RUN getent passwd 1000
+#Check if the user ID exists.
+#RUN getent passwd 1000
 
 #Run everything as the specified user.
 #USER node

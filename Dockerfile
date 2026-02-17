@@ -10,7 +10,12 @@ ARG TEST_GROUP_NAME=appgroup
 #       addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME; \
 #     fi && \
 #     adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
-RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
+# RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
+RUN GROUP_NAME=$(getent group $TEST_GROUP_ID | cut -d: -f1 || true) && \
+    if [ -z "$GROUP_NAME" ]; then \
+        addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME && GROUP_NAME=$TEST_GROUP_NAME; \
+    fi && \
+    adduser -D -u $TEST_USER_ID -G $GROUP_NAME $TEST_USER_NAME
 
 # RUN addgroup -g $TEST_GROUP_ID appuser && 
 # RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser

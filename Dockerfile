@@ -19,6 +19,10 @@ FROM node:18-alpine
 
 # RUN addgroup -g $TEST_GROUP_ID appuser && 
 # RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser
+
+#Check if the user ID exists. Else, fail the build.
+RUN getent passwd 1000
+
 USER 1000
 
 #Change the working directory.

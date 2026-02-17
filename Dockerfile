@@ -1,5 +1,11 @@
 FROM node:18-alpine
 
+#Provisions for the test user.
+ARG TEST_USER_ID=1000
+ARG TEST_GROUP_ID=1000
+RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser 
+USER appuser
+
 #Change the working directory.
 WORKDIR /usr/src/app
 

@@ -3,11 +3,13 @@ FROM node:18-alpine
 #Provisions for the test user.
 ARG TEST_USER_ID=1000
 ARG TEST_GROUP_ID=1000
+ARG TEST_USER_NAME=appuser
+ARG TEST_GROUP_NAME=appgroup
 #RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser #Debian style
-RUN if ! getent group 1000 >/dev/null; then \
-      addgroup -g 1000 appgroup; \
+RUN if ! getent group $TEST_GROUP_NAME >/dev/null; then \
+      addgroup -g $TEST_GROUP_ID $TEST_GROUP_NAME; \
     fi && \
-    adduser -u 1000 -G 1000 -D appuser
+    adduser -u $TEST_USER_ID -G $TEST_GROUP_NAME -D $TEST_USER_NAME
 
 # RUN addgroup -g $TEST_GROUP_ID appuser && 
 # RUN adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser

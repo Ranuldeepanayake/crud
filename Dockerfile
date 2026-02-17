@@ -3,7 +3,8 @@ FROM node:18-alpine
 #Provisions for the test user.
 ARG TEST_USER_ID=1000
 ARG TEST_GROUP_ID=1000
-RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser 
+#RUN groupadd -g $TEST_USER_ID appuser && useradd -m -u $TEST_USER_ID -g $TEST_USER_ID appuser #Debian style
+RUN addgroup -g $TEST_GROUP_ID appuser && adduser -u $TEST_USER_ID -G $TEST_GROUP_ID -D appuser
 USER appuser
 
 #Change the working directory.

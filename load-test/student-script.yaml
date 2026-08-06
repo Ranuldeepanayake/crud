@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-script
+data:
+  k6-test.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '30s', target: 50 },
+        { duration: '1m', target: 50 },
+        { duration: '30s', target: 0 },
+      ],
+      thresholds: {
+        http_req_duration: ['p(95)<500'], // 95% under 500ms
+        http_req_failed: ['rate<0.01'],   // <1% failures
+      },
+    };
+
+    const BASE_URL = __ENV.BASE_URL || 'http://api-crud-dev:80';
+
+    export default function () {
+
+      let home = http.get(`${BASE_URL}/`);
+      check(home, { 'home status 200': (r) => r.status === 200 });
+
+      let students = http.get(`${BASE_URL}/students`);
+      check(students, { 'students GET 200': (r) => r.status === 200 });
+
+      const payload = JSON.stringify({
+        name: `Student-${Math.random()}`,
+        age: 22
+      });
+
+      const params = {
+        headers: { 'Content-Type': 'application/json' },
+      };
+
+      let create = http.post(`${BASE_URL}/students`, payload, params);
+      check(create, { 'students POST ok': (r) => r.status === 201 || r.status === 200 });
+
+      sleep(1);
+    }

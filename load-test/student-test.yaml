@@ -1,0 +1,12 @@
+apiVersion: k6.io/v1alpha1
+kind: K6
+metadata:
+  name: student-test
+spec:
+  parallelism: 1   # number of runner pods
+  script:
+    configMap:
+      name: student-script
+      file: k6-test.js
+  arguments: >
+    --env BASE_URL=http://api-crud-dev:80
